@@ -19,13 +19,13 @@ along with RandomJS.  If not, see<http://www.gnu.org/licenses/>.
 
 #include "RandomGenerator.h"
 #include "ProgramFactory.h"
-#include "ProgramRunner.h"
+#include "FastStream.h"
 #include <iostream>
 #include <chrono>
 #include "blake2/blake2.h"
 
 constexpr char hexmap[] = "0123456789abcdef";
-constexpr int programCount = 1000;
+constexpr int programCount = 1;
 
 void outputHex(std::ostream& os, const char* data, int length) {
 	for (int i = 0; i < length; ++i) {
@@ -47,7 +47,6 @@ int main(int argc, char** argv) {
 								0xea, 0x00, 0x00, 0x00, 0x00, 0x77, 0xb2, 0x06, 0xa0, 0x2c, 0xa5, 0xb1, 0xd4, 0xce, 0x6b, 0xbf, 0xdf, 0x0a, 0xca, 
 								0xc3, 0x8b, 0xde, 0xd3, 0x4d, 0x2d, 0xcd, 0xee, 0xf9, 0x5c, 0xd2, 0x0c, 0xef, 0xc1, 0x2f, 0x61, 0xd5, 0x61, 0x09 
 							};
-	ProgramRunner runner(argv[0], "xst");
 	int* nonce = (int*)(blockTemplate + 39);
 	RandomGenerator rand;
 	ProgramFactory pf(rand);
@@ -55,21 +54,17 @@ int main(int argc, char** argv) {
 	for (int i = 0; i < programCount; ++i) {
 		*nonce = i;
 		blake2b(seed, sizeof(seed), blockTemplate, sizeof(blockTemplate), nullptr, 0);
+		std::cout << seed << '\n';
 		Program* p = pf.genProgram(seed);
-		runner.writeProgram(p);
-		int outputLength = runner.executeProgram(outputBuffer);
-		if (outputLength >= 0) {
-			blake2b(hash, sizeof(hash), outputBuffer, outputLength, seed, sizeof(seed));
-			//outputHex(std::cout, hash, sizeof(hash));
-			ch64[0] ^= ((uint64_t*)hash)[0];
-			ch64[1] ^= ((uint64_t*)hash)[1];
-			ch64[2] ^= ((uint64_t*)hash)[2];
-			ch64[3] ^= ((uint64_t*)hash)[3];
-		}
+		
+		// std::cout << *p;
+		
+		// FastStream stream;
+		// std::stringstream ss;
+		// ss << *p;
+		// stream << ss.tellp() << '\n' << ss.str();
+		// std::cout << stream.data();
 	}
-	auto hptEnd = std::chrono::high_resolution_clock::now();
-	std::cout << "Cumulative output hash: ";
-	outputHex(std::cout, cumulative, sizeof(cumulative));
-	std::cout << "Performance: " << programCount / std::chrono::duration<double>(hptEnd - hptStart).count() << " programs per second" << std::endl;
+	std::cout << '\n';
 	return 0;
 }
